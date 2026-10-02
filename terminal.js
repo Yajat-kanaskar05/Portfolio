@@ -3,6 +3,7 @@
   const $ = (id) => document.getElementById(id);
   const out = $("out"), screen = $("screen"), form = $("prompt"), input = $("cmd"), skipBtn = $("skip");
   const win = $("win"), winBar = $("win-bar"), winTitle = $("win-title"), winBody = $("win-body"), winClose = $("win-close");
+  const projectOverlay = $("project-overlay");
   const term = document.querySelector(".term"), dock = $("dock"), chipsEl = $("chips");
   const PS1 = "visitor@yajat:~$";
   const CAT = { fullstack: "Full-Stack", aiml: "AI/ML" };
@@ -80,11 +81,19 @@
     links.append(anchor("Source code", p.repo));
     winBody.append(shot, el("p", null, p.desc), tags, links);
     win.style.cssText = "";                          // reset any dragged position
+    projectOverlay.hidden = false;
+    projectOverlay.setAttribute("aria-hidden", "false");
     win.hidden = false;
     win.focus();
   }
-  function closeProject() { win.hidden = true; focusInput(); }
+  function closeProject() {
+    win.hidden = true;
+    projectOverlay.hidden = true;
+    projectOverlay.setAttribute("aria-hidden", "true");
+    focusInput();
+  }
   winClose.addEventListener("click", closeProject);
+  projectOverlay.addEventListener("click", closeProject);
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !win.hidden) closeProject(); });
 
   /* Drag the window (desktop only; mobile uses a bottom sheet) */

@@ -83,6 +83,23 @@ body{
   box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
 }
 .win[hidden]{display:none}
+.project-overlay{
+  position:fixed;
+  inset:0;
+  z-index:29;
+  background:rgba(0,0,0,.48);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  opacity:1;
+}
+.project-overlay[hidden]{display:none}
+.win:not([hidden]){
+  animation:project-pop .22s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes project-pop{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.92)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
 .win-bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.55rem .6rem .55rem .9rem;background:var(--bar);border-bottom:1px solid var(--line);cursor:grab;touch-action:none;position:sticky;top:0;z-index:2}
 .win-bar span{font-weight:700;color:var(--purple)}
 .win-bar button{background:none;border:1px solid var(--line);color:var(--muted);width:2rem;height:2rem;border-radius:.4rem;font:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
@@ -102,11 +119,14 @@ body{
 
 @media (max-width:40rem){
   .prompt input{font-size:16px} /* stops iOS Safari zooming on focus */
-  .win{top:auto;left:0;right:0;bottom:0;transform:none;width:auto;max-height:85dvh;border-radius:.9rem .9rem 0 0;border-bottom:0;animation:sheet .25s ease-out}
+  .win{top:auto;left:0;right:0;bottom:0;transform:none;width:auto;max-height:85dvh;border-radius:.9rem .9rem 0 0;border-bottom:0;animation:sheet .25s cubic-bezier(.2,.8,.2,1)}
   .win-bar{cursor:default}
 }
 @keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){.win{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  .win{animation:none}
+  .project-overlay{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
 
 /* ---------- Step 3: quick-command chips + mobile input bar ---------- */
 button,.cmd-link,.chip{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -117,9 +137,33 @@ button,.cmd-link,.chip{touch-action:manipulation;-webkit-tap-highlight-color:tra
 .dock[hidden]{display:none}
 .chips{display:flex;gap:.5rem;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;scroll-snap-align:start;min-height:2.2rem;padding:0 .95rem;border:1px solid var(--line);border-radius:999px;background:var(--win);color:var(--cyan);font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;transition:border-color .15s,background .15s}
-.chip:hover{border-color:var(--cyan)}
-.chip:active{background:var(--line)}
+.chip{
+  flex:none;
+  scroll-snap-align:start;
+  min-height:2.2rem;
+  padding:0 .95rem;
+  border:1px solid var(--cyan);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--cyan) 9%,var(--win));
+  color:var(--cyan);
+  font:inherit;
+  font-weight:700;
+  font-size:.85rem;
+  cursor:pointer;
+  box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 18%,transparent);
+  transition:transform .15s,border-color .15s,background .15s,box-shadow .15s;
+}
+.chip:hover,.chip:focus-visible{
+  border-color:var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 16%,var(--win));
+  box-shadow:0 0 14px color-mix(in srgb,var(--cyan) 35%,transparent);
+  transform:translateY(-1px);
+}
+.chip:active{
+  background:color-mix(in srgb,var(--cyan) 22%,var(--win));
+  transform:translateY(0);
+  box-shadow:0 0 7px color-mix(in srgb,var(--cyan) 25%,transparent);
+}
 
 @media (max-width:40rem){
   .dock{padding-bottom:max(.55rem,env(safe-area-inset-bottom))}
