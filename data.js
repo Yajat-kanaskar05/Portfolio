@@ -1,8 +1,10 @@
 /* All your content lives here. Edit this file, never the engine. */
 window.DATA = {
   name: "Yajat Kanaskar",
-  role: "Full-Stack Developer",
+  role: "Full-Stack Developer & AI/ML Engineer",
+  tagline: "I build web apps from interface to database.",   /* shown on the opening page */
   location: "Bengaluru, India",
+  availability: "Open to new opportunities",          /* shown in neofetch, sudo hire-me and the simple view; set to "" to hide */
   email: "yajat.important@gmail.com",
   resume: "Yajat-Kanaskar-Resume.pdf",
   links: {
@@ -22,7 +24,7 @@ window.DATA = {
   },
   projects: [
     {
-      id: "shop-ai", name: "Shop AI", cat: "fullstack",
+      id: "shop-ai", name: "Shop AI", tagline: "AI powered e-commerce website", cat: "fullstack",
       desc: "A powerful e-commerce website for shopping with AI-powered recommendations.",
       stack: ["React", "Node.js", "MongoDB"],
       live: "https://ai-powered-e-commerce-website-swart.vercel.app/",

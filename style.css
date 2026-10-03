@@ -5,8 +5,8 @@
   color-scheme:dark;
 }
 :root[data-theme="light"]{ /* Solarized Light */
-  --bg:#eee8d5; --win:#fdf6e3; --bar:#eee8d5; --ink:#586e75; --muted:#657b83; --line:#d6cfb8;
-  --green:#5f6f00; --cyan:#157d75; --purple:#6c71c4; --pink:#b8266f; --yellow:#946c00; --red:#c0292b;
+  --bg:#eee8d5; --win:#fdf6e3; --bar:#eee8d5; --ink:#425a61; --muted:#51666d; --line:#d6cfb8;
+  --green:#5f6f00; --cyan:#0c6760; --purple:#5559ad; --pink:#b8266f; --yellow:#946c00; --red:#c0292b;   /* tuned to WCAG AA */
   color-scheme:light;
 }
 
@@ -77,29 +77,12 @@ body{
 .indent{padding-left:3ch}
 
 .win{
-  position:fixed;z-index:30;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:min(26rem,92vw);max-height:86dvh;overflow-y:auto;
+  position:fixed;z-index:30;top:10vh;left:50%;
+  width:min(22rem,calc(100vw - 1.5rem));max-height:80dvh;overflow-y:auto;
   background:var(--win);border:1px solid var(--line);border-radius:.7rem;
   box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
 }
 .win[hidden]{display:none}
-.project-overlay{
-  position:fixed;
-  inset:0;
-  z-index:29;
-  background:rgba(0,0,0,.48);
-  backdrop-filter:blur(2px);
-  -webkit-backdrop-filter:blur(2px);
-  opacity:1;
-}
-.project-overlay[hidden]{display:none}
-.win:not([hidden]){
-  animation:project-pop .22s cubic-bezier(.2,.8,.2,1);
-}
-@keyframes project-pop{
-  from{opacity:0;transform:translate(-50%,-50%) scale(.92)}
-  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
-}
 .win-bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.55rem .6rem .55rem .9rem;background:var(--bar);border-bottom:1px solid var(--line);cursor:grab;touch-action:none;position:sticky;top:0;z-index:2}
 .win-bar span{font-weight:700;color:var(--purple)}
 .win-bar button{background:none;border:1px solid var(--line);color:var(--muted);width:2rem;height:2rem;border-radius:.4rem;font:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
@@ -119,13 +102,6 @@ body{
 
 @media (max-width:40rem){
   .prompt input{font-size:16px} /* stops iOS Safari zooming on focus */
-  .win{top:auto;left:0;right:0;bottom:0;transform:none;width:auto;max-height:85dvh;border-radius:.9rem .9rem 0 0;border-bottom:0;animation:sheet .25s cubic-bezier(.2,.8,.2,1)}
-  .win-bar{cursor:default}
-}
-@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){
-  .win{animation:none}
-  .project-overlay{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
 
 /* ---------- Step 3: quick-command chips + mobile input bar ---------- */
@@ -137,33 +113,9 @@ button,.cmd-link,.chip{touch-action:manipulation;-webkit-tap-highlight-color:tra
 .dock[hidden]{display:none}
 .chips{display:flex;gap:.5rem;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
 .chips::-webkit-scrollbar{display:none}
-.chip{
-  flex:none;
-  scroll-snap-align:start;
-  min-height:2.2rem;
-  padding:0 .95rem;
-  border:1px solid var(--cyan);
-  border-radius:999px;
-  background:color-mix(in srgb,var(--cyan) 9%,var(--win));
-  color:var(--cyan);
-  font:inherit;
-  font-weight:700;
-  font-size:.85rem;
-  cursor:pointer;
-  box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 18%,transparent);
-  transition:transform .15s,border-color .15s,background .15s,box-shadow .15s;
-}
-.chip:hover,.chip:focus-visible{
-  border-color:var(--cyan);
-  background:color-mix(in srgb,var(--cyan) 16%,var(--win));
-  box-shadow:0 0 14px color-mix(in srgb,var(--cyan) 35%,transparent);
-  transform:translateY(-1px);
-}
-.chip:active{
-  background:color-mix(in srgb,var(--cyan) 22%,var(--win));
-  transform:translateY(0);
-  box-shadow:0 0 7px color-mix(in srgb,var(--cyan) 25%,transparent);
-}
+.chip{flex:none;scroll-snap-align:start;min-height:2.2rem;padding:0 .95rem;border:1px solid var(--line);border-radius:999px;background:var(--win);color:var(--cyan);font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--cyan)}
+.chip:active{background:var(--line)}
 
 @media (max-width:40rem){
   .dock{padding-bottom:max(.55rem,env(safe-area-inset-bottom))}
@@ -172,3 +124,258 @@ button,.cmd-link,.chip{touch-action:manipulation;-webkit-tap-highlight-color:tra
   .dock .prompt:focus-within{border-color:var(--cyan)}
   .screen{padding-bottom:1rem}
 }
+
+/* ---------- Step 3b: highlighted clickables + animated project window ---------- */
+.cmd-link{
+  padding:.04rem .5rem;margin:0;
+  border:1px solid color-mix(in srgb,var(--cyan) 55%,transparent);border-radius:.35rem;
+  background:color-mix(in srgb,var(--cyan) 14%,transparent);
+  color:var(--cyan);text-decoration:none;
+  transition:background .15s,color .15s,box-shadow .15s,transform .15s;
+}
+.cmd-link:hover,.cmd-link:focus-visible{
+  background:var(--cyan);color:var(--win);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 28%,transparent),0 6px 16px -6px color-mix(in srgb,var(--cyan) 70%,transparent);
+}
+.cmd-link:active{transform:scale(.95)}
+.line a{padding:.04rem .35rem;border-radius:.3rem;background:color-mix(in srgb,var(--cyan) 12%,transparent);text-decoration:underline;text-underline-offset:.2em}
+.line a:hover{background:var(--cyan);color:var(--win)}
+
+.chip{border-color:color-mix(in srgb,var(--cyan) 55%,transparent);background:color-mix(in srgb,var(--cyan) 12%,var(--win))}
+.chip:hover,.chip:focus-visible{background:var(--cyan);color:var(--win);box-shadow:0 6px 16px -6px color-mix(in srgb,var(--cyan) 70%,transparent)}
+.chip.nudge{animation:nudge 1.1s ease-out 2}
+@keyframes nudge{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--cyan) 65%,transparent)}to{box-shadow:0 0 0 .9rem transparent}}
+
+/* Window: spring-in, dim backdrop, staggered content */
+.scrim{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.2);pointer-events:none;animation:fadeIn .25s both}
+.scrim[hidden]{display:none}
+.scrim.closing{animation:fadeOut .19s both}
+.win{animation:winIn .5s cubic-bezier(.2,1.25,.35,1) both}
+.win.closing{animation:winOut .19s ease-in both}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes winIn{from{opacity:0;scale:.86;translate:0 28px}to{opacity:1;scale:1;translate:0 0}}
+@keyframes winOut{to{opacity:0;scale:.94;translate:0 12px}}
+
+.win-body>*{animation:rise .5s cubic-bezier(.22,.8,.3,1) both;animation-delay:calc(var(--i,0)*80ms + 150ms)}
+.win-body>.shot{animation:rise .5s cubic-bezier(.22,.8,.3,1) .1s both,reveal .8s cubic-bezier(.65,0,.35,1) .1s both}
+@keyframes rise{from{opacity:0;translate:0 16px}}
+@keyframes reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+.shot img{animation:drift 9s ease-out both}
+@keyframes drift{from{scale:1.14}to{scale:1}}
+.shot::after{content:"";position:absolute;left:0;right:0;top:0;height:40%;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--cyan) 38%,transparent),transparent);
+  animation:scan .9s .4s ease-in-out both}
+@keyframes scan{from{translate:0 -100%;opacity:1}to{translate:0 280%;opacity:0}}
+.tags span,.links a{animation:pop .45s cubic-bezier(.2,1.5,.4,1) both;animation-delay:calc(var(--i,0)*70ms + 480ms)}
+@keyframes pop{from{opacity:0;scale:.6}}
+.links a{transition:transform .15s,background .15s,color .15s,box-shadow .15s}
+.links a:hover,.links a:focus-visible{transform:translateY(-2px);box-shadow:0 8px 18px -8px var(--cyan)}
+
+@media (prefers-reduced-motion:reduce){
+  .win,.scrim,.win-body>*,.win-body>.shot,.tags span,.links a,.shot img,.shot::after,.chip.nudge{animation:none!important}
+}
+
+/* ---------- Opening page (hero) + zoom-open transition ---------- */
+.hero{display:none}
+.js .hero{display:grid}
+.hero[hidden]{display:none}
+.hero{
+  position:fixed;inset:0;z-index:50;place-items:center;text-align:center;
+  padding:max(1.5rem,env(safe-area-inset-top)) max(1.5rem,env(safe-area-inset-right)) max(1.5rem,env(safe-area-inset-bottom)) max(1.5rem,env(safe-area-inset-left));
+  background:
+    radial-gradient(55rem 32rem at 50% 0%,color-mix(in srgb,var(--purple) 16%,transparent),transparent 70%),
+    var(--bg);
+}
+.hero-in{display:grid;justify-items:center;gap:.7rem;max-width:36rem;animation:heroIn .8s cubic-bezier(.22,.8,.3,1) both}
+.hero-name{margin:0;font-size:clamp(2.2rem,8.5vw,4.5rem);line-height:1.05;font-weight:700;letter-spacing:-.03em}
+.hero-role{margin:0;font-size:clamp(1rem,2.6vw,1.25rem);color:var(--purple);font-weight:700}
+.hero-tag{margin:.2rem 0 1.4rem;color:var(--muted);max-width:30ch}
+.caret{display:inline-block;width:.55ch;height:1.05em;margin-left:.5ch;vertical-align:-.15em;background:var(--pink);animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@keyframes heroIn{from{opacity:0;translate:0 14px}}
+
+.open-btn{
+  display:inline-flex;align-items:center;gap:.85rem;padding:.7rem 1.4rem .7rem .7rem;
+  background:var(--win);color:var(--ink);border:1px solid var(--line);border-radius:.75rem;
+  font:inherit;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 18px 40px -22px rgba(0,0,0,.7);
+  transition:border-color .15s,transform .15s,box-shadow .15s;
+}
+.open-ico{display:grid;place-items:center;width:2.3rem;height:2.3rem;border-radius:.45rem;background:var(--bar);border:1px solid var(--line);color:var(--green);font-size:.9rem}
+.open-btn:hover,.open-btn:focus-visible{border-color:var(--cyan);transform:translateY(-2px);box-shadow:0 22px 44px -20px color-mix(in srgb,var(--cyan) 55%,transparent)}
+.open-btn:active{transform:scale(.97)}
+
+/* terminal waits hidden, then zooms out of the button like an app launching */
+.term.pre{visibility:hidden}
+.term.opening{transform-origin:var(--ox,50%) var(--oy,50%);animation:zoomOpen .7s cubic-bezier(.2,.9,.25,1) both}
+@keyframes zoomOpen{from{opacity:0;scale:.12}35%{opacity:1}to{opacity:1;scale:1}}
+.hero.leaving{pointer-events:none;animation:heroOut .5s ease-in both}
+@keyframes heroOut{to{opacity:0;scale:1.04}}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-in,.term.opening,.hero.leaving,.caret{animation:none!important}
+}
+
+/* ---------- Outer-space background ---------- */
+html{background:#04050d}
+body{
+  background:
+    radial-gradient(60rem 40rem at 15% 8%,rgba(124,82,224,.24),transparent 62%),
+    radial-gradient(52rem 38rem at 88% 92%,rgba(40,150,205,.17),transparent 62%),
+    radial-gradient(40rem 28rem at 70% 30%,rgba(255,121,198,.08),transparent 65%),
+    linear-gradient(#04050d,#090b20 55%,#110a29) fixed;
+  background-color:#04050d;
+}
+#space{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.term{position:relative;z-index:1}
+
+/* Opening page: always uses the dark palette so text reads on space, in either theme */
+.hero{
+  --win:#282a36;--bar:#21222c;--ink:#f8f8f2;--muted:#aab2d4;--line:#44475a;
+  --green:#50fa7b;--cyan:#8be9fd;--purple:#bd93f9;--pink:#ff79c6;
+  color:var(--ink);
+  background:radial-gradient(42rem 24rem at 50% 46%,rgba(5,6,16,.6),transparent 72%);
+}
+.hero-name{text-shadow:0 0 40px rgba(189,147,249,.35)}
+
+/* ---------- Step 4: title-bar buttons, theme toggle, Simple view ---------- */
+.bar-actions{display:flex;align-items:center;gap:.5rem;margin-left:auto}
+.bar-btn{background:none;border:1px solid var(--line);color:var(--muted);font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:.35rem;cursor:pointer;touch-action:manipulation}
+.bar-btn:hover{color:var(--ink);border-color:var(--muted)}
+@media (max-width:30rem){.dots{display:none}.bar{gap:.5rem}}
+
+.hero-link{background:none;border:0;margin-top:.5rem;padding:.4rem;color:var(--muted);font:inherit;font-size:.85rem;cursor:pointer;text-decoration:underline dotted;text-underline-offset:.3em;touch-action:manipulation}
+.hero-link:hover,.hero-link:focus-visible{color:var(--cyan)}
+
+/* View switching: the page shows either the terminal experience or the simple page */
+#simple{display:none}
+html[data-view="simple"] #simple{display:block}
+html[data-view="simple"] :is(.hero,.term,.win,.scrim,#space){display:none!important}
+html[data-view="simple"]{background:var(--bg)}
+html[data-view="simple"] body{background:var(--bg);display:block;padding:0;height:auto;min-height:100%}
+@media (prefers-reduced-motion:no-preference){html[data-view="simple"]{scroll-behavior:smooth}}
+
+.simple{color:var(--ink);min-height:100vh}
+.s-wrap{max-width:60rem;margin:0 auto;padding:0 1.25rem 3rem}
+#s-main:focus{outline:0}
+
+.s-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  margin:0 -1.25rem;padding:.7rem 1.25rem;padding-top:max(.7rem,env(safe-area-inset-top));
+  background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.s-brand{font-weight:700;color:var(--purple)}
+.s-nav{display:flex;gap:1.1rem;flex-wrap:wrap;margin-left:auto}
+.s-nav a{color:var(--muted);text-decoration:none}
+.s-nav a:hover,.s-nav a:focus-visible{color:var(--cyan)}
+.s-actions{display:flex;gap:.5rem}
+
+.s-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border:1px solid var(--cyan);border-radius:.45rem;
+  background:color-mix(in srgb,var(--cyan) 10%,transparent);color:var(--cyan);font:inherit;font-weight:700;font-size:.9rem;
+  text-decoration:none;cursor:pointer;touch-action:manipulation;transition:background .15s,color .15s,transform .15s}
+.s-btn:hover,.s-btn:focus-visible{background:var(--cyan);color:var(--bg);transform:translateY(-1px)}
+.s-btn.solid{background:var(--cyan);color:var(--bg)}
+.s-btn.solid:hover{filter:brightness(1.1)}
+.s-btn.ghost{border-color:var(--line);background:none;color:var(--muted);font-weight:400;padding:.35rem .75rem}
+.s-btn.ghost:hover,.s-btn.ghost:focus-visible{border-color:var(--cyan);background:none;color:var(--cyan)}
+
+.s-hero{padding:3.5rem 0 .5rem}
+.s-hero h1{margin:0;font-size:clamp(2.2rem,8vw,3.8rem);line-height:1.05;letter-spacing:-.03em}
+.s-role{margin:.5rem 0 0;color:var(--purple);font-weight:700;font-size:1.1rem}
+.s-loc{margin:.2rem 0 0;color:var(--muted)}
+.s-tag{margin:1rem 0 0;max-width:46ch}
+.s-acts{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.4rem}
+
+.s-sec{padding-top:2.75rem;scroll-margin-top:4.5rem}
+.s-sec h2{margin:0 0 1rem;font-size:1.1rem;color:var(--ink)}
+.s-sec h2::before{content:"$ ";color:var(--green)}
+.s-sec>p{max-width:65ch;margin:0 0 .9rem}
+
+.s-skills{display:grid;gap:.9rem;margin:0}
+.s-skills>div{display:grid;grid-template-columns:7rem 1fr;gap:.6rem;align-items:baseline}
+.s-skills dt{color:var(--purple);font-weight:700}
+.s-skills dd{margin:0;display:flex;flex-wrap:wrap;gap:.4rem}
+.s-tag-chip{font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:.35rem;padding:.05rem .55rem;background:var(--win)}
+@media (max-width:40rem){.s-skills>div{grid-template-columns:1fr;gap:.3rem}}
+
+.s-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:1.1rem}
+.s-card{display:flex;flex-direction:column;background:var(--win);border:1px solid var(--line);border-radius:.7rem;overflow:hidden;
+  transition:transform .2s,border-color .2s,box-shadow .2s}
+.s-card:hover{transform:translateY(-3px);border-color:var(--cyan);box-shadow:0 16px 34px -20px color-mix(in srgb,var(--cyan) 60%,transparent)}
+.s-shot{position:relative;aspect-ratio:16/10;overflow:hidden;border-bottom:1px solid var(--line);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--purple) 40%,var(--win)),color-mix(in srgb,var(--cyan) 30%,var(--win)))}
+.s-shot::before{content:attr(data-title);position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:1rem;font-weight:700;opacity:.8}
+.s-shot img{position:relative;width:100%;height:100%;object-fit:cover;display:block}
+.s-card-body{display:flex;flex-direction:column;gap:.7rem;padding:1rem;flex:1}
+.s-card-head{display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.s-card h3{margin:0;font-size:1.05rem;color:var(--purple)}
+.s-badge{font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.05rem .6rem;white-space:nowrap}
+.s-card p{margin:0}
+.s-tags,.s-links{display:flex;flex-wrap:wrap;gap:.4rem}
+.s-links{margin-top:auto;padding-top:.3rem;gap:.55rem}
+
+.s-foot{margin-top:3.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+
+@media (max-width:40rem){
+  .s-nav{order:3;margin-left:0;width:100%;gap:1rem}
+  .s-actions{margin-left:auto}
+  .s-hero{padding-top:2.5rem}
+}
+
+/* ---------- Step 5: neofetch, matrix ---------- */
+.line.nf{display:flex;flex-wrap:wrap;gap:.4rem 2rem;white-space:normal;margin:.3rem 0}
+.nf-logo{margin:0;font:inherit;font-weight:700;line-height:1.25;color:var(--purple);white-space:pre}
+.nf-info .row{white-space:pre-wrap;word-break:break-word}
+.nf-info .k{color:var(--cyan);font-weight:700}
+.nf-title{font-weight:700}
+.nf-pal{margin-top:.5rem}
+.sw{display:inline-block;width:2ch;height:1.1em;vertical-align:-.2em}
+.matrix{position:fixed;inset:0;width:100%;height:100%;z-index:90;background:#000;cursor:pointer;animation:fadeIn .4s both}
+.matrix.out{animation:fadeOut .4s both}
+.matrix-hint{position:fixed;z-index:91;left:0;right:0;bottom:max(1rem,env(safe-area-inset-bottom));text-align:center;color:#50fa7b;opacity:.7;font-size:.85rem;pointer-events:none}
+.s-avail{margin:.7rem 0 0;color:var(--green);font-size:.9rem;font-weight:700}
+
+/* ---------- Step 6: accessibility, mobile and print polish ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.s-skip{position:absolute;left:1rem;top:-4rem;z-index:20;padding:.5rem .9rem;border-radius:.4rem;background:var(--cyan);color:var(--bg);font-weight:700;text-decoration:none}
+.s-skip:focus{top:.75rem}
+
+/* Phones: respect notches / rounded corners and keep tap targets comfortable */
+@media (max-width:40rem){
+  .bar{padding-top:max(.6rem,env(safe-area-inset-top));padding-left:max(.9rem,env(safe-area-inset-left));padding-right:max(.9rem,env(safe-area-inset-right))}
+  .screen{padding-left:max(1.1rem,env(safe-area-inset-left));padding-right:max(1.1rem,env(safe-area-inset-right))}
+  .dock{padding-left:max(.8rem,env(safe-area-inset-left));padding-right:max(.8rem,env(safe-area-inset-right))}
+  .bar-btn,.skip{min-height:2.25rem;padding:.2rem .75rem}
+}
+/* Short screens (phones in landscape) */
+@media (max-height:32rem){
+  body{padding:.5rem}
+  .term{height:calc(100dvh - 1rem)}
+  .chip{min-height:2rem}
+  .dock{padding-block:.35rem}
+}
+
+/* Touch screens keep :hover after a tap, which left buttons stuck highlighted. Undo it there. */
+@media (hover:none){
+  .cmd-link:hover:not(:focus-visible):not(:active){background:color-mix(in srgb,var(--cyan) 14%,transparent);color:var(--cyan);box-shadow:none}
+  .chip:hover:not(:focus-visible):not(:active){background:color-mix(in srgb,var(--cyan) 12%,var(--win));color:var(--cyan);box-shadow:none}
+  .line a:hover{background:color-mix(in srgb,var(--cyan) 12%,transparent);color:var(--cyan)}
+  .links a:hover:not(:focus-visible){background:none;color:var(--cyan);transform:none;box-shadow:none}
+  .s-btn:not(.solid):not(.ghost):hover:not(:focus-visible){background:color-mix(in srgb,var(--cyan) 10%,transparent);color:var(--cyan);transform:none}
+  .s-btn.ghost:hover:not(:focus-visible){border-color:var(--line);color:var(--muted);transform:none}
+  .s-card:hover{transform:none;border-color:var(--line);box-shadow:none}
+}
+
+/* Print / save-as-PDF of the simple view: clean, light, with link addresses */
+@media print{
+  html[data-view="simple"][data-theme]{--bg:#fff;--win:#fff;--ink:#111;--muted:#444;--line:#ccc;--cyan:#0b5f58;--purple:#4b3fa8;--green:#2f6b00;color-scheme:light}
+  html[data-view="simple"] .s-top,.s-skip{display:none!important}
+  .s-card{break-inside:avoid;box-shadow:none!important;transform:none!important}
+  .s-links a::after,.s-acts a[href^="http"]::after{content:" (" attr(href) ")";font-weight:400;font-size:.75rem;word-break:break-all}
+  .s-btn{background:none!important}
+}
+
+/* ---------- Back to home: terminal shrinks into the Open button ---------- */
+.term.closing-term{transform-origin:var(--ox,50%) var(--oy,50%);animation:zoomClose .45s cubic-bezier(.5,0,.75,0) both}
+@keyframes zoomClose{to{opacity:0;scale:.12}}
+@media (prefers-reduced-motion:reduce){.term.closing-term{animation:none!important}}

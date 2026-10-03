@@ -3,19 +3,73 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Yajat Kanaskar | Full-Stack Developer</title>
-<meta name="description" content="Full-stack developer building web apps from interface to database.">
+<title>Yajat Kanaskar | Full-Stack Developer &amp; AI/ML Engineer</title>
+<meta name="description" content="Full-stack developer and AI/ML engineer building web apps from interface to database.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script>
+document.documentElement.classList.add("js");
+/* ?view=simple opens the plain page straight away (handy link for recruiters) */
+try { if (new URLSearchParams(location.search).get("view") === "simple") document.documentElement.dataset.view = "simple"; } catch (e) {}
+</script>
+<meta name="theme-color" content="#04050d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23282a36'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='28' font-weight='700' text-anchor='middle' fill='%2350fa7b'%3E%3E_%3C/text%3E%3C/svg%3E">
+
+<!-- Social previews (work without any URL) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Yajat Kanaskar">
+<meta property="og:title" content="Yajat Kanaskar | Full-Stack Developer &amp; AI/ML Engineer">
+<meta property="og:description" content="Full-stack developer and AI/ML engineer building web apps from interface to database.">
+<meta name="twitter:card" content="summary">
+<!-- AFTER you deploy: uncomment and set your real address and a 1200x630 preview image.
+<link rel="canonical" href="https://YOUR-SITE/">
+<meta property="og:url" content="https://YOUR-SITE/">
+<meta property="og:image" content="https://YOUR-SITE/preview.png">
+<meta name="twitter:card" content="summary_large_image">  (and delete the "summary" card above)
+-->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Person","name":"Yajat Kanaskar",
+ "jobTitle":"Full-Stack Developer & AI/ML Engineer","email":"mailto:yajat.important@gmail.com",
+ "address":{"@type":"PostalAddress","addressLocality":"Bengaluru","addressCountry":"IN"},
+ "sameAs":["https://github.com/Yajat-kanaskar05","https://www.linkedin.com/in/yajat-kanaskar-b2167a331/"]}
+</script>
+
+<noscript><style>
+  .term,#space{display:none!important}
+  body{display:block;height:auto;padding:1.5rem;background:#fff;color:#111;font:1rem/1.6 system-ui,sans-serif}
+  body a{color:#0b5f58}
+</style></noscript>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="term">
+<canvas id="space" aria-hidden="true"></canvas>
+<div id="sr" class="sr-only" role="status" aria-live="polite"></div>
+
+<section id="hero" class="hero" aria-labelledby="h-name">
+  <div class="hero-in">
+    <h1 id="h-name" class="hero-name">Yajat Kanaskar</h1>
+    <p id="h-role" class="hero-role">Full-Stack Developer &amp; AI/ML Engineer</p>
+    <p id="h-tag" class="hero-tag"><span class="caret" aria-hidden="true"></span></p>
+    <button type="button" id="open" class="open-btn">
+      <span class="open-ico" aria-hidden="true">&gt;_</span>
+      <span>Open terminal</span>
+    </button>
+    <button type="button" id="h-simple" class="hero-link">Prefer a regular page? View the simple version</button>
+  </div>
+</section>
+
+<main class="term pre">
   <header class="bar">
     <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <button type="button" id="home-btn" class="bar-btn" aria-label="Back to home page">&larr; Home</button>
     <span class="title">visitor@yajat: ~</span>
-    <button type="button" id="skip" class="skip">Skip intro</button>
+    <div class="bar-actions">
+      <button type="button" class="bar-btn" data-theme-btn></button>
+      <button type="button" id="simple-btn" class="bar-btn">Simple view</button>
+      <button type="button" id="skip" class="skip">Skip intro</button>
+    </div>
   </header>
 
   <div id="screen" class="screen" role="log" aria-live="polite">
@@ -31,24 +85,33 @@
   </div>
 </main>
 
-<div id="project-overlay" class="project-overlay" hidden aria-hidden="true"></div>
+<div id="scrim" class="scrim" hidden></div>
 
-<div id="win" class="win" role="dialog" aria-labelledby="win-title" tabindex="-1" hidden>
-  <div id="win-bar" class="win-bar">
-    <span id="win-title"></span>
-    <button type="button" id="win-close" aria-label="Close project window">&times;</button>
-  </div>
-  <div id="win-body" class="win-body"></div>
-</div>
+<div id="simple" class="simple"></div>
 
 <noscript>
-  <p style="padding:2rem;font-family:monospace">
-    Yajat Kanaskar, Full-Stack Developer. This site needs JavaScript.
-    GitHub: github.com/Yajat-kanaskar05 | Email: yajat.important@gmail.com
-  </p>
+  <main>
+    <h1>Yajat Kanaskar</h1>
+    <p>Full-Stack Developer &amp; AI/ML Engineer. Bengaluru, India.</p>
+    <p>I build web apps from interface to database. This site is best with JavaScript on, but here is the short version.</p>
+    <h2>Projects</h2>
+    <ul>
+      <li><a href="https://ai-powered-e-commerce-website-swart.vercel.app/">Shop AI</a> (<a href="https://github.com/Yajat-kanaskar05/AI-powered-E-Commerce-Website">source</a>): AI powered e-commerce website. React, Node.js, MongoDB.</li>
+      <li><a href="https://video-calling-app-t7i4.onrender.com/signup">Video Calling App</a> (<a href="https://github.com/Yajat-kanaskar05/Video-Calling-App">source</a>): real-time video calling with end-to-end encryption. Next.js, TypeScript, MongoDB.</li>
+      <li><a href="https://github.com/Yajat-kanaskar05/AI_Plays_Ping_Pong">AI Ping Pong</a>: reinforcement learning agent that plays ping pong. Python, PyTorch, scikit-learn.</li>
+    </ul>
+    <h2>Contact</h2>
+    <p><a href="mailto:yajat.important@gmail.com">yajat.important@gmail.com</a> &middot;
+       <a href="https://github.com/Yajat-kanaskar05">GitHub</a> &middot;
+       <a href="https://www.linkedin.com/in/yajat-kanaskar-b2167a331/">LinkedIn</a> &middot;
+       <a href="Yajat-Kanaskar-Resume.pdf">Resume</a></p>
+  </main>
 </noscript>
 
+<script src="space.js"></script>
 <script src="data.js"></script>
+<script src="simple.js"></script>
 <script src="terminal.js"></script>
+<script src="extras.js"></script>
 </body>
 </html>

@@ -2,19 +2,36 @@
   const D = window.DATA;
   const $ = (id) => document.getElementById(id);
   const out = $("out"), screen = $("screen"), form = $("prompt"), input = $("cmd"), skipBtn = $("skip");
-  const win = $("win"), winBar = $("win-bar"), winTitle = $("win-title"), winBody = $("win-body"), winClose = $("win-close");
-  const projectOverlay = $("project-overlay");
+  const scrim = $("scrim");
   const term = document.querySelector(".term"), dock = $("dock"), chipsEl = $("chips");
   const PS1 = "visitor@yajat:~$";
+  const sr = $("sr");                              // screen-reader announcements (visually hidden)
+  const announce = (m) => { sr.textContent = ""; setTimeout(() => { sr.textContent = m; }, 60); };
   const CAT = { fullstack: "Full-Stack", aiml: "AI/ML" };
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let skipped = still;
 
   /* Theme: saved choice, else system preference */
+  const root = document.documentElement;
   let saved = null;
   try { saved = localStorage.getItem("theme"); } catch (e) {}
-  document.documentElement.dataset.theme =
-    saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  root.dataset.theme = saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+
+  const curTheme = () => root.dataset.theme;
+  function syncThemeBtns() {                       // every [data-theme-btn] shows the theme you'd switch TO
+    const dark = curTheme() === "dark";
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => {
+      b.textContent = (dark ? "\u2600\uFE0E" : "\u263E\uFE0E") + (b.dataset.long ? (dark ? " Light" : " Dark") : "");
+      b.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+      b.title = dark ? "Light theme" : "Dark theme";
+    });
+  }
+  function setTheme(t) {
+    root.dataset.theme = t;
+    try { localStorage.setItem("theme", t); } catch (e) {}
+    syncThemeBtns();
+    announce(`${t} theme`);
+  }
 
   /* ---------- Viewport: phone vs desktop ---------- */
   const wide = matchMedia("(min-width:40.01rem)");
@@ -51,11 +68,11 @@
   function anchor(label, href, newTab = true) {
     const a = el("a", null, label);
     a.href = href;
-    if (newTab) { a.target = "_blank"; a.rel = "noopener"; }
+    if (newTab) { a.target = "_blank"; a.rel = "noopener"; a.append(el("span", "sr-only", " (opens in new tab)")); }
     return a;
   }
-  function cmdBtn(label, command) {                 // tappable command
-    const b = el("button", "cmd-link", label);
+  function cmdBtn(label, command, extra = "") {     // tappable, highlighted command
+    const b = el("button", "cmd-link" + (extra ? " " + extra : ""), label);
     b.type = "button";
     b.addEventListener("click", () => run(command));
     return b;
@@ -64,53 +81,116 @@
     line([txt(PS1, "ps1"), document.createTextNode(raw)], "echo");
   }
 
-  /* ---------- Project window ---------- */
+  /* ---------- Project windows (several at once, terminal stays usable) ---------- */
+  const wins = new Map();                          // project id -> { id, el, closing, timer }
+  let zTop = 30;
+  const live = () => [...wins.values()].filter((w) => !w.closing);
+  const syncScrim = () => { scrim.hidden = !live().length; };
+  const raise = (rec) => { rec.el.style.zIndex = ++zTop; };
+
   function openProject(p) {
-    winTitle.textContent = p.name;
-    winBody.textContent = "";
+    const old = wins.get(p.id);
+    if (old && !old.closing) {                     // already open: bring it to the front
+      raise(old);
+      if (!still) old.el.animate(
+        [{ boxShadow: "0 0 0 0 var(--cyan)" }, { boxShadow: "0 0 0 .8rem transparent" }],
+        { duration: 450, easing: "ease-out" });
+      focusInput();
+      return;
+    }
+    if (old) { clearTimeout(old.timer); old.el.remove(); wins.delete(p.id); }   // was mid-close
+
+    const w = el("div", "win");
+    w.setAttribute("role", "dialog");
+    w.setAttribute("aria-labelledby", `win-title-${p.id}`);
+    w.tabIndex = -1;
+
+    const bar = el("div", "win-bar");
+    const title = el("span", null, p.name); title.id = `win-title-${p.id}`;
+    const x = el("button", null, "\u00d7"); x.type = "button";
+    x.setAttribute("aria-label", `Close ${p.name}`);
+    bar.append(title, x);
+
+    const body = el("div", "win-body");
     const shot = el("div", "shot");
     shot.dataset.title = p.name;
     const img = el("img");
     img.src = p.img; img.alt = `Screenshot of ${p.name}`; img.loading = "lazy";
-    img.onerror = () => img.remove();                // gradient + name show instead
+    img.onerror = () => img.remove();              // gradient + name show instead
     shot.append(el("span", "badge", CAT[p.cat] || p.cat), img);
     const tags = el("div", "tags");
-    p.stack.forEach((s) => tags.append(el("span", null, s)));
+    p.stack.forEach((s, i) => { const t = el("span", null, s); t.style.setProperty("--i", i); tags.append(t); });
     const links = el("div", "links");
-    if (p.live) links.append(anchor("Live site", p.live));
-    links.append(anchor("Source code", p.repo));
-    winBody.append(shot, el("p", null, p.desc), tags, links);
-    win.style.cssText = "";                          // reset any dragged position
-    projectOverlay.hidden = false;
-    projectOverlay.setAttribute("aria-hidden", "false");
-    win.hidden = false;
-    win.focus();
-  }
-  function closeProject() {
-    win.hidden = true;
-    projectOverlay.hidden = true;
-    projectOverlay.setAttribute("aria-hidden", "true");
-    focusInput();
-  }
-  winClose.addEventListener("click", closeProject);
-  projectOverlay.addEventListener("click", closeProject);
-  addEventListener("keydown", (e) => { if (e.key === "Escape" && !win.hidden) closeProject(); });
+    [p.live && ["Live site", p.live], ["Source code", p.repo]].filter(Boolean).forEach(([label, href], i) => {
+      const a = anchor(label, href); a.style.setProperty("--i", i); links.append(a);
+    });
+    // --i drives the staggered entrance in CSS
+    [shot, el("p", null, p.desc), tags, links].forEach((n, i) => { n.style.setProperty("--i", i); body.append(n); });
+    w.append(bar, body);
 
-  /* Drag the window (desktop only; mobile uses a bottom sheet) */
-  let drag = null;
-  winBar.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("button") || !wide.matches) return;
-    const r = win.getBoundingClientRect();
-    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-    winBar.setPointerCapture(e.pointerId);
+    const rec = { id: p.id, name: p.name, opener: document.activeElement, el: w, closing: false, timer: 0 };
+    wins.set(p.id, rec);
+    document.body.append(w);
+
+    // Cascade each new window so they never sit exactly on top of each other
+    const off = ((live().length - 1) % 6) * 28;
+    const ww = w.offsetWidth;
+    const left = Math.min(Math.max(8, (innerWidth - ww) / 2 + off - 70), Math.max(8, innerWidth - ww - 8));
+    const top = Math.min(Math.max(8, innerHeight * 0.1 + off), Math.max(8, innerHeight - 140));
+    w.style.left = left + "px"; w.style.top = top + "px";
+    raise(rec);
+    syncScrim();
+    announce(`${p.name} project window opened. Press Escape to close it.`);
+
+    x.addEventListener("click", () => closeWin(rec));
+    w.addEventListener("pointerdown", () => raise(rec), true);   // click anywhere = to front
+
+    // Drag by the title bar (mouse and touch)
+    let drag = null;
+    bar.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button")) return;
+      const r = w.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      bar.setPointerCapture(e.pointerId);
+    });
+    bar.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      w.style.left = Math.min(Math.max(0, e.clientX - drag.dx), Math.max(0, innerWidth - w.offsetWidth)) + "px";
+      w.style.top = Math.min(Math.max(0, e.clientY - drag.dy), innerHeight - 60) + "px";
+    });
+    const endDrag = () => { drag = null; };
+    bar.addEventListener("pointerup", endDrag);
+    bar.addEventListener("pointercancel", endDrag);
+
+    focusInput();                                  // keep typing in the terminal
+  }
+
+  function closeWin(rec) {
+    if (rec.closing) return;
+    rec.closing = true;
+    syncScrim();
+    const done = () => {
+      rec.el.remove(); wins.delete(rec.id);
+      const o = rec.opener;                        // give focus back to whatever opened the window
+      if (o && o !== document.body && o.isConnected) o.focus({ preventScroll: true }); else focusInput();
+      announce(`${rec.name} closed.`);
+    };
+    if (still) return done();
+    rec.el.classList.add("closing");
+    rec.timer = setTimeout(done, 190);
+  }
+
+  addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {                      // close only the topmost window
+      const top = live().sort((a, b) => b.el.style.zIndex - a.el.style.zIndex)[0];
+      if (top) closeWin(top);
+      return;
+    }
+    // If focus ended up on a popup/page after clicking it, typing goes back to the terminal
+    if (!wide.matches || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || form.hidden || root.dataset.view === "simple") return;
+    const a = document.activeElement;
+    if (a === document.body || (a && a.closest && a.closest(".win"))) input.focus({ preventScroll: true });
   });
-  winBar.addEventListener("pointermove", (e) => {
-    if (!drag) return;
-    const x = Math.min(Math.max(0, e.clientX - drag.dx), innerWidth - win.offsetWidth);
-    const y = Math.min(Math.max(0, e.clientY - drag.dy), innerHeight - 60);
-    Object.assign(win.style, { left: x + "px", top: y + "px", transform: "none" });
-  });
-  winBar.addEventListener("pointerup", () => { drag = null; });
 
   /* ---------- Projects lookup ---------- */
   function findProject(q) {
@@ -127,10 +207,11 @@
       desc: "list available commands",
       run() {
         print("Available commands (tap or type):", "dim");
-        Object.keys(commands).forEach((name) =>
-          line([txt("  "), cmdBtn(name, name), txt(" ".repeat(Math.max(1, 11 - name.length)) + commands[name].desc)]));
+        Object.keys(commands).filter((n) => !commands[n].hidden).forEach((name) =>
+          line([txt("  "), cmdBtn(name, name, "col"), txt("  " + commands[name].desc)]));
         gap();
         print("Tip: Tab autocompletes, Up/Down recalls history.", "dim");
+        print("There are a few hidden commands too. Good luck.", "dim");
       }
     },
     about: {
@@ -152,7 +233,7 @@
         if (!list.length) return print(`No projects in '${f}'. Try: ${Object.keys(CAT).join(", ")}`, "err");
         list.forEach(({ p, i }) => {
           line([txt(`${i + 1}. `, "dim"), cmdBtn(p.id, `open ${p.id}`),
-                txt(" ".repeat(Math.max(2, 12 - p.id.length)) + p.name + "  "), txt(`[${CAT[p.cat] || p.cat}]`, "dim")]);
+                txt("  " + (p.tagline || p.name) + "  "), txt(`[${CAT[p.cat] || p.cat}]`, "dim")]);
           line([txt(p.desc, "dim")], "indent");
         });
         gap();
@@ -161,13 +242,19 @@
     },
     open: {
       desc: "open a project: open <name or number>",
-      run(args) {
+      async run(args) {
         const p = findProject(args.join(" "));
         if (!p) {
           print(args.length ? `No project matches '${args.join(" ")}'.` : "Usage: open <name or number>", "err");
           return line([txt("Try: "), ...D.projects.flatMap((x, i) => [i ? txt(", ") : "", cmdBtn(x.id, `open ${x.id}`)])]);
         }
-        print(`Opening ${p.name}...`, "dim");
+        const bar = el("span", "ok");
+        line([txt(`Opening ${p.name} `, "dim"), bar]);
+        const N = 12;
+        for (let i = 0; i <= N; i++) {
+          bar.textContent = `[${"█".repeat(i)}${"░".repeat(N - i)}]`;
+          if (!still) await new Promise((r) => setTimeout(r, 28));
+        }
         openProject(p);
       }
     },
@@ -194,6 +281,24 @@
         line(items.flatMap((n) => [cmdBtn(n, n), txt("   ")]));
       }
     },
+    theme: {
+      desc: "switch theme: theme dark|light",
+      run(args) {
+        const a = (args[0] || "").toLowerCase();
+        if (a === "dark" || a === "light") { setTheme(a); return line([txt("Theme set to "), txt(a, "hl"), txt(".")]); }
+        if (a) return print(`Unknown theme '${args[0]}'. Options: dark, light.`, "err");
+        line([txt("Current theme: "), txt(curTheme(), "hl")]);
+        line([txt("Switch to: "), cmdBtn("theme dark", "theme dark"), txt(" "), cmdBtn("theme light", "theme light")]);
+      }
+    },
+    simple: {
+      desc: "switch to the plain page view",
+      run() { print("Switching to simple view...", "dim"); setTimeout(() => setView("simple"), 250); }
+    },
+    exit: {
+      desc: "back to the home page",
+      run() { print("logout", "dim"); setTimeout(goHome, 250); }
+    },
     whoami: {
       desc: "who are you?",
       run() { print("visitor. Thanks for stopping by."); }
@@ -209,7 +314,9 @@
   };
 
   const aliases = { work: "projects", project: "projects", hire: "contact", email: "contact", cv: "resume",
-                    skill: "skills", me: "about", info: "about", "?": "help", man: "help", cls: "clear", dir: "ls" };
+                    skill: "skills", me: "about", info: "about", "?": "help", man: "help", cls: "clear", dir: "ls",
+                    plain: "simple", mode: "theme", themes: "theme",
+                    home: "exit", quit: "exit", back: "exit", logout: "exit" };
 
   function dist(a, b) {                              // Levenshtein, for "Did you mean...?"
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
@@ -233,7 +340,7 @@
     if (Object.hasOwn(aliases, key)) key = aliases[key];
     if (Object.hasOwn(commands, key)) return commands[key].run(args);
 
-    const names = Object.keys(commands);
+    const names = Object.keys(commands).filter((n) => !commands[n].hidden);
     const best = names.map((n) => [n, n.startsWith(key) ? 0 : dist(key, n)]).sort((a, b) => a[1] - b[1])[0];
     if (best && best[1] <= 2) {
       line([txt(`command not found: ${name}. Did you mean `, "err"), cmdBtn(best[0], best[0]), txt("?", "err")]);
@@ -256,8 +363,9 @@
     const parts = input.value.split(/\s+/);
     const last = parts[parts.length - 1].toLowerCase();
     let pool = [];
-    if (parts.length === 1) pool = Object.keys(commands);
+    if (parts.length === 1) pool = Object.keys(commands).filter((n) => !commands[n].hidden);
     else if (parts[0].toLowerCase() === "open" && parts.length === 2) pool = D.projects.map((p) => p.id);
+    else if (parts[0].toLowerCase() === "theme" && parts.length === 2) pool = ["dark", "light"];
     const matches = pool.filter((n) => n.startsWith(last));
     if (!matches.length) return;
     let prefix = matches[0];
@@ -334,6 +442,11 @@
     out.textContent = "";
     welcome();
     dock.hidden = false;
+    const nudge = chipsEl.querySelector(".chip:nth-child(2)");   // "projects"
+    if (nudge && !still) {
+      nudge.classList.add("nudge");
+      nudge.addEventListener("animationend", () => nudge.classList.remove("nudge"), { once: true });
+    }
     placePrompt();
     form.hidden = false;
     focusInput();
@@ -341,7 +454,124 @@
 
   const skip = () => { skipped = true; };
   skipBtn.addEventListener("click", skip);
-  addEventListener("keydown", () => { if (form.hidden) skip(); });
 
-  boot();
+  /* ---------- Opening page: button -> terminal zooms open, then boots ---------- */
+  const hero = $("hero"), openBtn = $("open");
+  let booting = false, opening = false;
+  addEventListener("keydown", () => { if (booting && form.hidden) skip(); });
+
+  $("h-name").textContent = D.name;
+  $("h-role").textContent = D.role;
+  if (D.tagline) $("h-tag").prepend(D.tagline);
+
+  function launch() {
+    if (opening || !term.classList.contains("pre")) return;   // already open (or opening)
+    opening = true;
+    const resume = booting;                        // opened before: pick up where the visitor left off
+    booting = true;
+    const done = () => {
+      term.classList.remove("opening"); hero.hidden = true; opening = false;
+      if (resume) { toBottom(); focusInput(); } else boot();
+    };
+    if (still) { term.classList.remove("pre"); done(); return; }   // reduced motion: swap instantly
+    // Zoom out of the button: aim the animation's origin at it
+    const t = term.getBoundingClientRect(), b = openBtn.getBoundingClientRect();
+    term.style.setProperty("--ox", (b.left + b.width / 2 - t.left) + "px");
+    term.style.setProperty("--oy", (b.top + b.height / 2 - t.top) + "px");
+    hero.classList.add("leaving");
+    term.classList.remove("pre");
+    term.classList.add("opening");
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true; term.removeEventListener("animationend", onEnd); done();
+    };
+    const onEnd = (e) => { if (e.target === term) finish(); };
+    term.addEventListener("animationend", onEnd);
+    setTimeout(finish, 1000);                      // safety net
+  }
+
+  /* ---------- Back to the home (opening) page, from the terminal or the simple view ---------- */
+  function closeAllWindows() {
+    wins.forEach((r) => { clearTimeout(r.timer); r.el.remove(); });
+    wins.clear(); syncScrim();
+  }
+  function showHero() {
+    hero.hidden = false; hero.classList.remove("leaving");
+    term.classList.remove("opening", "closing-term"); term.classList.add("pre");
+  }
+  function goHome() {
+    if (opening) return;
+    closeAllWindows();
+    if (root.dataset.view === "simple") {          // simple view -> home page (instant)
+      setView("terminal");                         // also clears ?view=simple from the address bar
+      showHero(); scrollTo(0, 0);
+      openBtn.focus({ preventScroll: true });
+      announce("Home page");
+      return;
+    }
+    if (term.classList.contains("pre")) return;    // already home
+    if (still) { showHero(); openBtn.focus({ preventScroll: true }); announce("Home page"); return; }
+    opening = true;
+    hero.hidden = false; hero.style.visibility = "hidden";        // measure the button before revealing the page
+    hero.classList.remove("leaving");
+    const t = term.getBoundingClientRect(), b = openBtn.getBoundingClientRect();
+    term.style.setProperty("--ox", (b.left + b.width / 2 - t.left) + "px");
+    term.style.setProperty("--oy", (b.top + b.height / 2 - t.top) + "px");
+    term.classList.add("closing-term");            // the terminal shrinks back into the button...
+    setTimeout(() => { hero.style.visibility = ""; }, 180);        // ...while the home page fades in
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true; term.removeEventListener("animationend", onEnd);
+      hero.style.visibility = "";
+      term.classList.remove("closing-term"); term.classList.add("pre");
+      opening = false;
+      openBtn.focus({ preventScroll: true });
+      announce("Home page");
+    };
+    const onEnd = (e) => { if (e.target === term) finish(); };
+    term.addEventListener("animationend", onEnd);
+    setTimeout(finish, 700);                       // safety net
+  }
+  $("home-btn").addEventListener("click", goHome);
+  openBtn.addEventListener("click", launch);
+
+  /* ---------- Simple view: the same content as a plain, scannable page ---------- */
+  window.renderSimple($("simple"), D, CAT);
+  syncThemeBtns();
+
+  function setView(v, byUser = true) {
+    const simple = v === "simple";
+    if (simple) {                                  // drop any open project windows
+      wins.forEach((r) => { clearTimeout(r.timer); r.el.remove(); });
+      wins.clear(); syncScrim();
+    }
+    root.dataset.view = simple ? "simple" : "terminal";
+    document.dispatchEvent(new CustomEvent("viewchange", { detail: root.dataset.view }));
+    if (byUser) announce(simple ? "Simple view" : "Terminal view");
+    if (!byUser) return;
+    try {                                          // keep the address bar shareable: ?view=simple
+      const u = new URL(location.href);
+      if (simple) u.searchParams.set("view", "simple"); else u.searchParams.delete("view");
+      history.replaceState(null, "", u);
+    } catch (e) {}
+    if (simple) { scrollTo(0, 0); $("s-main").focus({ preventScroll: true }); }
+    else if (booting) focusInput();
+    else openBtn.focus({ preventScroll: true });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-theme-btn]")) setTheme(curTheme() === "dark" ? "light" : "dark");
+    else if (e.target.closest('[data-act="terminal"]')) { setView("terminal"); launch(); }
+    else if (e.target.closest('[data-act="home"]')) goHome();
+  });
+  $("simple-btn").addEventListener("click", () => setView("simple"));
+  $("h-simple").addEventListener("click", () => setView("simple"));
+
+  if (root.dataset.view !== "simple") openBtn.focus({ preventScroll: true });
+
+  /* Small API so extras.js can register commands without touching this file */
+  window.TERM = { commands, aliases, D, still, line, print, gap, txt, el, cmdBtn, anchor, run, curTheme, focusInput,
+                  wait: (ms) => new Promise((r) => setTimeout(r, still ? 0 : ms)) };
 })();
